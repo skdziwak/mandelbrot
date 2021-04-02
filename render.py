@@ -6,21 +6,41 @@ from matplotlib import pyplot as plt
 from PIL import Image
 from pycuda.compiler import SourceModule
 import shutil, os
+import argparse
 
 def read(path):
     with open(path, encoding='utf-8') as f:
         return f.read()
 
-BLOCK = (32, 32, 1)
-GRID = (40, 40)
-FRAMES = 4000
-ZPF = 1.02
-ITERATIONS = 500
-X = -1.0909471548936537
-Y = 0.236112271234165140
+parser = argparse.ArgumentParser(description='Mandelbrot Set zoom animation generator.')
+parser.add_argument('--bw', nargs='?', action='store', default=32, type=int, help='Block width')
+parser.add_argument('--bh', nargs='?', action='store', default=32, type=int, help='Block height')
+parser.add_argument('--gw', nargs='?', action='store', default=48, type=int, help='Grid width')
+parser.add_argument('--gh', nargs='?', action='store', default=48, type=int, help='Grid height')
+parser.add_argument('-l', nargs='?', action='store', default=500, type=int, help='Iterations limit')
+parser.add_argument('-x', nargs='?', action='store', default=0, type=float, help='X offset')
+parser.add_argument('-y', nargs='?', action='store', default=0, type=float, help='Y offset')
+parser.add_argument('-fps', nargs='?', action='store', default=30, type=int, help='Y offset')
+parser.add_argument('-z', nargs='?', action='store', default=1.02, type=float, help='Zoom speed')
+parser.add_argument('-cm', nargs='?', action='store', default='PuBuGn', type=str, help='Matplotlib colormap')
+parser.add_argument('frames', type=int, help='Number of rendered frames')
+parser.add_argument('output', type=str, help='Output file (mp4)')
+
+args = parser.parse_args()
+
+BLOCK = (args.bw, args.bh, 1)
+GRID = (args.gw, args.gh)
+FRAMES = args.frames
+ZPF = args.z
+X = args.x
+Y = args.y
+ITERATIONS = args.l
+FPS = args.fps
+OUTPUT = args.output
+CM = args.cm
+
 WIDTH = GRID[0] * BLOCK[0]
 HEIGHT = GRID[1] * BLOCK[1]
-FPS = 30
 
 if os.path.exists('tmp'):
     shutil.rmtree('tmp')
@@ -45,7 +65,7 @@ try:
 
         mandelbrot(drv.Out(dest), drv.In(params), block=BLOCK, grid=GRID)
 
-        result = plt.get_cmap('PuBuGn')(dest)
+        result = plt.get_cmap(CM)(dest)
         result *= 255
 
         Image.fromarray(result.astype('uint8'), 'RGBA').save('tmp/frame{}.png'.format(f + 1))
@@ -55,5 +75,5 @@ except KeyboardInterrupt:
     if os.path.exists(p):
         os.remove(p)
 
-os.system('ffmpeg -y -r {fps} -f image2 -s {width}x{height} -i tmp/frame%d.png -vcodec libx264 -crf 25  -pix_fmt yuv420p result.mp4'.format(width=WIDTH, height=HEIGHT, fps=FPS))
+os.system('ffmpeg -y -r {fps} -f image2 -s {width}x{height} -i tmp/frame%d.png -vcodec libx264 -crf 25  -pix_fmt yuv420p {output}'.format(width=WIDTH, height=HEIGHT, fps=FPS, output=OUTPUT))
 shutil.rmtree('tmp')
