@@ -49,7 +49,7 @@ if os.path.exists('tmp'):
 os.mkdir('tmp')
 
 print('Initializing')
-mod = SourceModule(read('mandelbrot.cpp'))
+mod = SourceModule(read('mandelbrot.cpp'), include_dirs=[os.path.join(os.getcwd(), 'include')], no_extern_c=True)
 mandelbrot = mod.get_function("mandelbrot")
 
 print('Allocating buffer')
@@ -80,4 +80,3 @@ except KeyboardInterrupt:
         os.remove(p)
 
 os.system('ffmpeg -y -r {fps} -f image2 -s {width}x{height} -i tmp/frame%d.png -vcodec libx264 -crf 25  -pix_fmt yuv420p {output}'.format(width=WIDTH, height=HEIGHT, fps=FPS, output=OUTPUT))
-shutil.rmtree('tmp')
