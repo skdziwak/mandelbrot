@@ -24,11 +24,13 @@ parser.add_argument('-x', nargs='?', action='store', default=0, type=float, help
 parser.add_argument('-y', nargs='?', action='store', default=0, type=float, help='Y offset')
 parser.add_argument('-fps', nargs='?', action='store', default=30, type=int, help='Y offset')
 parser.add_argument('-z', nargs='?', action='store', default=1.02, type=float, help='Zoom speed')
+parser.add_argument('-mc', nargs='?', action='store', default=0, type=float, help='Minimal contrast')
 parser.add_argument('-cm', nargs='?', action='store', default='PuBuGn', type=str, help='Matplotlib colormap')
 parser.add_argument('frames', type=int, help='Number of rendered frames')
 parser.add_argument('output', type=str, help='Output file (mp4)')
 parser.add_argument('-i', action='store_true', help='Invert colormap')
 parser.add_argument('-nf', action='store_true', help='Don\'t save frames')
+parser.add_argument('-r', action='store_true', help='Repeat if failed')
 parser.add_argument('-a', action='store_true', help='Automatic positioning')
 parser.add_argument('-lp', action='store_true', help='Go to last position')
 parser.add_argument('-ai', nargs='?', action='store', default=80, type=int, help='Automatic positioning interval')
@@ -41,8 +43,7 @@ BLOCK = (args.bw, args.bh, 1)
 GRID = (args.gw, args.gh)
 FRAMES = args.frames
 ZPF = args.z
-X = args.x
-Y = args.y
+INIT_POS = (args.x, args.y)
 ITERATIONS = args.l
 FPS = args.fps
 OUTPUT = args.output
@@ -52,6 +53,8 @@ AUTO = args.a
 AUTO_INTERVAL = args.ai
 AUTO_RATE = args.ar
 LAST_POS = args.lp
+MINIMAL_CONTRAST = args.mc
+REPEAT = args.r
 
 WIDTH = GRID[0] * BLOCK[0]
 HEIGHT = GRID[1] * BLOCK[1]
@@ -73,53 +76,70 @@ mandelbrot = mod.get_function("mandelbrot")
 print('Allocating buffer')
 dest = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
 
-zoom = 1.5
-params = np.array([zoom, X, Y, ITERATIONS], dtype=np.float32)
+params = np.array([0, 0, 0, ITERATIONS], dtype=np.float32)
 
-target = (0, 0)
-auto_counter = 0
+while True:
+    target = (0, 0)
+    auto_counter = 0
+    zoom = 1.5
+    X = INIT_POS[0]
+    Y = INIT_POS[1]
+    print('Executing')
+    try:
+        success = True
+        for f in range(FRAMES):
+            print('Generating frame {}/{}'.format(f + 1, FRAMES))
+            zoom /= ZPF
+            params[0] = zoom
+            params[1] = X
+            params[2] = Y
 
-print('Executing')
-try:
-    for f in range(FRAMES):
-        print('Generating frame {}/{}'.format(f + 1, FRAMES))
-        zoom /= ZPF
-        params[0] = zoom
-        params[1] = X
-        params[2] = Y
+            mandelbrot(drv.Out(dest), drv.In(params), block=BLOCK, grid=GRID)
 
-        mandelbrot(drv.Out(dest), drv.In(params), block=BLOCK, grid=GRID)
+            if MINIMAL_CONTRAST != 0 and np.amax(dest) - np.amin(dest) < MINIMAL_CONTRAST:
+                print('Contrast condition failed.')
+                success = False
+                break
 
-        if AUTO:
-            if auto_counter == 0:
-                result = np.where(dest == np.amax(dest[(dest<1) & (dest>0.3)]))
-                points = list(zip(result[0], result[1]))
-                point = random.choice(points)
-                x = point[1]
-                y = point[0]
-                x = (x / WIDTH - 0.5) * 2 * zoom
-                y = (y / HEIGHT - 0.5) * 2 * zoom
-                target = (X + x, Y + y)
-                auto_counter = AUTO_INTERVAL
-            else:
-                auto_counter -= 1
-            X = (X * (1 - AUTO_RATE) + target[0] * AUTO_RATE)
-            Y = (Y * (1 - AUTO_RATE) + target[1] * AUTO_RATE)
+            if AUTO:
+                if auto_counter == 0:
+                    g = MINIMAL_CONTRAST / 2 if MINIMAL_CONTRAST > 0 else 0.2
+                    edges = np.where((dest > 0.55 - g) & (dest < 0.55 + g))
+                    points = list(zip(edges[0], edges[1]))
+                    point = random.choice(points)
+                    x = point[1]
+                    y = point[0]
+                    x = (x / WIDTH - 0.5) * 2 * zoom
+                    y = (y / HEIGHT - 0.5) * 2 * zoom
+                    target = (X + x, Y + y)
+                    auto_counter = AUTO_INTERVAL
+                else:
+                    auto_counter -= 1
+                X = (X * (1 - AUTO_RATE) + target[0] * AUTO_RATE)
+                Y = (Y * (1 - AUTO_RATE) + target[1] * AUTO_RATE)
 
-        if not NO_FRAMES:
-            result = plt.get_cmap(CM)(dest)
-            result *= 255
-            if INVERT:
-                result = 1 - result
+            if not NO_FRAMES:
+                result = plt.get_cmap(CM)(dest)
+                result *= 255
+                if INVERT:
+                    result = 1 - result
 
-            Image.fromarray(result.astype('uint8'), 'RGBA').save('tmp/frame{}.png'.format(f + 1))
-except KeyboardInterrupt:
-    print('Render interrupted')
-    p = 'tmp/frame{}.png'.format(f + 1)
-    if os.path.exists(p):
-        os.remove(p)
-except ValueError:
-    traceback.print_exc()
+                Image.fromarray(result.astype('uint8'), 'RGBA').save('tmp/frame{}.png'.format(f + 1))
+        if success:
+            break
+    except KeyboardInterrupt:
+        print('Render interrupted')
+        p = 'tmp/frame{}.png'.format(f + 1)
+        if os.path.exists(p):
+            os.remove(p)
+        break
+    except IndexError:
+        print('Empty sequence.')
+    if REPEAT:
+        print('Repeating.')
+    else:
+        print('Halting.')
+        break
 
 
 with open('last.txt', 'w') as file:
