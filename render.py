@@ -123,8 +123,6 @@ while True:
                 Y = (Y * (1 - AUTO_RATE) + target[1] * AUTO_RATE)
 
             if not NO_FRAMES:
-                if CONTRAST_IMPROVEMENT:
-                    dest = np.tanh(dest * 6 - 3) / 2 + 0.5
                 if INVERT:
                     dest = 1 - dest
                 result = plt.get_cmap(CM)(dest)
