@@ -29,6 +29,7 @@ parser.add_argument('output', type=str, help='Output file (mp4)')
 parser.add_argument('-i', action='store_true', help='Invert colormap')
 parser.add_argument('-nf', action='store_true', help='Don\'t save frames')
 parser.add_argument('-a', action='store_true', help='Automatic positioning')
+parser.add_argument('-lp', action='store_true', help='Go to last position')
 parser.add_argument('-ai', nargs='?', action='store', default=80, type=int, help='Automatic positioning interval')
 parser.add_argument('-ar', nargs='?', action='store', default=0.1, type=float, help='Automatic positioning rate')
 
@@ -49,6 +50,7 @@ NO_FRAMES = args.nf
 AUTO = args.a
 AUTO_INTERVAL = args.ai
 AUTO_RATE = args.ar
+LAST_POS = args.lp
 
 WIDTH = GRID[0] * BLOCK[0]
 HEIGHT = GRID[1] * BLOCK[1]
@@ -56,6 +58,12 @@ HEIGHT = GRID[1] * BLOCK[1]
 if os.path.exists('tmp'):
     shutil.rmtree('tmp')
 os.mkdir('tmp')
+
+if LAST_POS and os.path.exists('last.txt'):
+    with open('last.txt') as file:
+        data = [float(x) for x in file.read().split(';')]
+        X = data[0]
+        Y = data[1]
 
 print('Initializing')
 mod = SourceModule(read('mandelbrot.cpp'), include_dirs=[os.path.join(os.getcwd(), 'include')], no_extern_c=True)
@@ -83,7 +91,7 @@ try:
 
         if AUTO:
             if auto_counter == 0:
-                result = np.where(dest == np.amax(dest[dest<1]))
+                result = np.where(dest == np.amax(dest[(dest<1) & (dest>0.3)]))
                 points = list(zip(result[0], result[1]))
                 point = random.choice(points)
                 x = point[1]
@@ -110,7 +118,8 @@ except KeyboardInterrupt:
     if os.path.exists(p):
         os.remove(p)
 
-print('Final position: ({}, {})'.format(X, Y))
+with open('last.txt', 'w') as file:
+    file.write(';'.join(str(a) for a in [X, Y, zoom]))
 
-if not NO_FRAMES:
+if not NO_FRAMES and OUTPUT.lower() != 'null':
     os.system('ffmpeg -y -r {fps} -f image2 -s {width}x{height} -i tmp/frame%d.png -vcodec libx264 -crf 25  -pix_fmt yuv420p {output}'.format(width=WIDTH, height=HEIGHT, fps=FPS, output=OUTPUT))
