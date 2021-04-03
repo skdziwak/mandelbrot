@@ -7,6 +7,7 @@ from PIL import Image
 from pycuda.compiler import SourceModule
 import shutil, os
 import argparse
+import random
 
 def read(path):
     with open(path, encoding='utf-8') as f:
@@ -26,6 +27,10 @@ parser.add_argument('-cm', nargs='?', action='store', default='PuBuGn', type=str
 parser.add_argument('frames', type=int, help='Number of rendered frames')
 parser.add_argument('output', type=str, help='Output file (mp4)')
 parser.add_argument('-i', action='store_true', help='Invert colormap')
+parser.add_argument('-nf', action='store_true', help='Don\'t save frames')
+parser.add_argument('-a', action='store_true', help='Automatic positioning')
+parser.add_argument('-ai', nargs='?', action='store', default=80, type=int, help='Automatic positioning interval')
+parser.add_argument('-ar', nargs='?', action='store', default=0.1, type=float, help='Automatic positioning rate')
 
 args = parser.parse_args()
 
@@ -40,6 +45,10 @@ ITERATIONS = args.l
 FPS = args.fps
 OUTPUT = args.output
 CM = args.cm
+NO_FRAMES = args.nf
+AUTO = args.a
+AUTO_INTERVAL = args.ai
+AUTO_RATE = args.ar
 
 WIDTH = GRID[0] * BLOCK[0]
 HEIGHT = GRID[1] * BLOCK[1]
@@ -58,25 +67,50 @@ dest = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
 zoom = 1.5
 params = np.array([zoom, X, Y, ITERATIONS], dtype=np.float32)
 
+target = (0, 0)
+auto_counter = 0
+
 print('Executing')
 try:
     for f in range(FRAMES):
         print('Generating frame {}/{}'.format(f + 1, FRAMES))
         zoom /= ZPF
         params[0] = zoom
+        params[1] = X
+        params[2] = Y
 
         mandelbrot(drv.Out(dest), drv.In(params), block=BLOCK, grid=GRID)
 
-        result = plt.get_cmap(CM)(dest)
-        result *= 255
-        if INVERT:
-            result = 1 - result
+        if AUTO:
+            if auto_counter == 0:
+                result = np.where(dest == np.amax(dest[dest<1]))
+                points = list(zip(result[0], result[1]))
+                point = random.choice(points)
+                x = point[1]
+                y = point[0]
+                x = (x / WIDTH - 0.5) * 2 * zoom
+                y = (y / HEIGHT - 0.5) * 2 * zoom
+                target = (X + x, Y + y)
+                auto_counter = AUTO_INTERVAL
+            else:
+                auto_counter -= 1
+            X = (X * (1 - AUTO_RATE) + target[0] * AUTO_RATE)
+            Y = (Y * (1 - AUTO_RATE) + target[1] * AUTO_RATE)
 
-        Image.fromarray(result.astype('uint8'), 'RGBA').save('tmp/frame{}.png'.format(f + 1))
+        if not NO_FRAMES:
+            result = plt.get_cmap(CM)(dest)
+            result *= 255
+            if INVERT:
+                result = 1 - result
+
+            Image.fromarray(result.astype('uint8'), 'RGBA').save('tmp/frame{}.png'.format(f + 1))
 except KeyboardInterrupt:
     print('Render interrupted')
     p = 'tmp/frame{}.png'.format(f + 1)
     if os.path.exists(p):
         os.remove(p)
 
-os.system('ffmpeg -y -r {fps} -f image2 -s {width}x{height} -i tmp/frame%d.png -vcodec libx264 -crf 25  -pix_fmt yuv420p {output}'.format(width=WIDTH, height=HEIGHT, fps=FPS, output=OUTPUT))
+print('Final position: ({}, {})'.format(X, Y))
+
+if not NO_FRAMES:
+    os.system('ffmpeg -y -r {fps} -f image2 -s {width}x{height} -i tmp/frame%d.png -vcodec libx264 -crf 25  -pix_fmt yuv420p {output}'.format(width=WIDTH, height=HEIGHT, fps=FPS, output=OUTPUT))
