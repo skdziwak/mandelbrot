@@ -68,8 +68,7 @@ os.mkdir('tmp')
 if LAST_POS and os.path.exists('last.txt'):
     with open('last.txt') as file:
         data = [float(x) for x in file.read().split(';')]
-        X = data[0]
-        Y = data[1]
+        INIT_POS = (data[0], data[1])
 
 print('Initializing')
 mod = SourceModule(read('mandelbrot.cpp'), include_dirs=[os.path.join(os.getcwd(), 'include')], no_extern_c=True)
