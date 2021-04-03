@@ -126,7 +126,7 @@ while True:
                 if CONTRAST_IMPROVEMENT:
                     dest = np.tanh(dest * 6 - 3) / 2 + 0.5
                 if INVERT:
-                    result = 1 - result
+                    dest = 1 - dest
                 result = plt.get_cmap(CM)(dest)
                 result *= 255
 
