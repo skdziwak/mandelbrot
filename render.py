@@ -125,10 +125,10 @@ while True:
             if not NO_FRAMES:
                 if CONTRAST_IMPROVEMENT:
                     dest = np.tanh(dest * 6 - 3) / 2 + 0.5
-                result = plt.get_cmap(CM)(dest)
-                result *= 255
                 if INVERT:
                     result = 1 - result
+                result = plt.get_cmap(CM)(dest)
+                result *= 255
 
                 Image.fromarray(result.astype('uint8'), 'RGBA').save('tmp/frame{}.png'.format(f + 1))
         if success:
