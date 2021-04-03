@@ -1,4 +1,5 @@
 #include "multi_prec.h"
+#include "matrix_utils.h"
 
 typedef multi_prec<4> number;
 
@@ -18,9 +19,9 @@ extern "C" {
     }
 
     __global__ void mandelbrot(float *dest, float *params) {
-        const int x = blockIdx.x * blockDim.x + threadIdx.x;
-        const int y = blockIdx.y * blockDim.y + threadIdx.y;
-        const int i = x + y * gridDim.x * blockDim.x;
+        const int x = getX();
+        const int y = getY();
+        const int i = getIndex2D(x, y);
         const number fx = (x / number(gridDim.x * blockDim.x) - 0.5) * 2;
         const number fy = (y / number(gridDim.y * blockDim.y) - 0.5) * 2;
         const number zoom(params[0]);
