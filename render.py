@@ -8,6 +8,7 @@ from pycuda.compiler import SourceModule
 import shutil, os
 import argparse
 import random
+import traceback
 
 def read(path):
     with open(path, encoding='utf-8') as f:
@@ -117,6 +118,9 @@ except KeyboardInterrupt:
     p = 'tmp/frame{}.png'.format(f + 1)
     if os.path.exists(p):
         os.remove(p)
+except ValueError:
+    traceback.print_exc()
+
 
 with open('last.txt', 'w') as file:
     file.write(';'.join(str(a) for a in [X, Y, zoom]))
