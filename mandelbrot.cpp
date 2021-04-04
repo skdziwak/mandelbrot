@@ -1,7 +1,7 @@
 #include "multi_prec.h"
 #include "matrix_utils.h"
 
-typedef multi_prec<4> number;
+typedef multi_prec<5> number;
 
 extern "C" {
 
@@ -13,7 +13,7 @@ extern "C" {
             number b = y;
             x = a * a - b * b + xc;
             y = 2.0 * a * b + yc;
-            if (x * x + y * y > 10000000.0) return i;
+            if (x * x + y * y > 2.0) return i;
         }
         return -1;
     }
@@ -35,6 +35,26 @@ extern "C" {
         } else {
             dest[i] = float(s) / iterations;
         }
+    }
+
+    __global__ void filter(float *dest, float *in) {
+        const int x = getX();
+        const int y = getY();
+        const int i = getIndex2D(x, y);
+        if (x == 0 || x == getWidth()-1 || y == 0 || y == getHeight()-1) {
+            dest[i] = 0.0; 
+            return;
+        }
+
+        int j = 0;
+        float score = 0.0;
+        for (int a = -1 ; a <= 1 ; a+=2) {
+            for (int b = -1 ; b <= 1 ; b+=2) {
+                j = getIndex2D(x + a, y + b);
+                score += in[j] * (a + b);
+            }
+        }
+        dest[i] = abs(score / 6.0);
     }
 
 }

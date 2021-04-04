@@ -13,6 +13,14 @@ extern "C" {
     __device__ int getIndex2D(int x, int y) {
         return x + y * gridDim.x * blockDim.x;
     }
+
+    __device__ int getWidth() {
+        return gridDim.x * blockDim.x;
+    }
+
+    __device__ int getHeight() {
+        return gridDim.y * blockDim.y;
+    }
 }
 
 #endif
