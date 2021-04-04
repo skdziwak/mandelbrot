@@ -36,6 +36,7 @@ parser.add_argument('-a', action='store_true', help='Automatic positioning')
 parser.add_argument('-lp', action='store_true', help='Go to last position')
 parser.add_argument('-ai', nargs='?', action='store', default=80, type=int, help='Automatic positioning interval')
 parser.add_argument('-ar', nargs='?', action='store', default=0.1, type=float, help='Automatic positioning rate')
+parser.add_argument('-p', nargs='?', action='store', default=4, type=int, help='Precision')
 
 args = parser.parse_args()
 
@@ -57,6 +58,7 @@ LAST_POS = args.lp
 MINIMAL_CONTRAST = args.mc
 REPEAT = args.r
 CONTRAST_IMPROVEMENT = args.ci
+PRECISION = args.p
 
 WIDTH = GRID[0] * BLOCK[0]
 HEIGHT = GRID[1] * BLOCK[1]
@@ -71,8 +73,8 @@ if LAST_POS and os.path.exists('last.txt'):
         INIT_POS = (data[0], data[1])
 
 print('Initializing')
-mod = SourceModule(read('mandelbrot.cpp'), include_dirs=[os.path.join(os.getcwd(), 'include')], no_extern_c=True)
-mandelbrot = mod.get_function("mandelbrot")
+module = SourceModule('#define PRECISION {}\n'.format(PRECISION) + read('mandelbrot.cpp'), include_dirs=[os.path.join(os.getcwd(), 'include')], no_extern_c=True)
+mandelbrot = module.get_function("mandelbrot")
 
 print('Allocating buffer')
 dest = np.zeros((HEIGHT, WIDTH), dtype=np.float32)

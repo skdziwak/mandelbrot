@@ -1,7 +1,7 @@
 #include "multi_prec.h"
 #include "matrix_utils.h"
 
-typedef multi_prec<5> number;
+typedef multi_prec<PRECISION> number;
 
 extern "C" {
 
