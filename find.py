@@ -6,6 +6,8 @@ from PIL import Image
 from pycuda.compiler import SourceModule
 import random, os, time
 import argparse
+import shutil
+import sys
 
 parser = argparse.ArgumentParser(description='Mandelbrot Set conntrasting points finder.')
 parser.add_argument('steps', type=int, help='Number of steps')
@@ -30,9 +32,15 @@ ZPF = args.z
 PRECISION = args.p
 ITERATIONS = args.l
 
+sys.setrecursionlimit(30000)
+
 def read(path):
     with open(path, encoding='utf-8') as f:
         return f.read()
+
+if os.path.exists('tmp'):
+    shutil.rmtree('tmp')
+os.mkdir('tmp')
 
 module = SourceModule('#define PRECISION {}\n'.format(PRECISION) + read('mandelbrot.cpp'), include_dirs=[os.path.join(os.getcwd(), 'include')], no_extern_c=True)
 mandelbrot = module.get_function("mandelbrot")
