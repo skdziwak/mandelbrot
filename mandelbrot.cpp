@@ -13,7 +13,7 @@ extern "C" {
             number b = y;
             x = a * a - b * b + xc;
             y = 2.0 * a * b + yc;
-            if (x * x + y * y > 2.0) return i;
+            if (x * x + y * y > 20000000000.0) return i;
         }
         return -1;
     }
