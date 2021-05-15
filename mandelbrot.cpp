@@ -3,17 +3,35 @@
 
 typedef multi_prec<PRECISION> number;
 
+class Complex {
+public:
+number r, i;
+    __device__ Complex(number r, number i) : r(r), i(i) {
+        
+    }
+    __device__ Complex operator*(const Complex& other) {
+        return Complex(this->r * other.r - this->i * other.i, this->r * other.i + this->i * other.r);
+    }
+    __device__ Complex operator+(const Complex& other) {
+        return Complex(this->r + other.r, this->i + other.i);
+    }
+    __device__ void operator=(const Complex& other) {
+        this->r = other.r;
+        this->i = other.i;
+    }
+    __device__ number dist_squared() {
+        return this->i * this->i + this->r * this->r;
+    }
+};
+
 extern "C" {
 
     __device__ int stability(number xc, number yc, int iterations) {
-        number x(0.0);
-        number y(0.0);
+        Complex c(xc, yc);
+        Complex p(0.0, 0.0);
         for (int i = 0; i < iterations; i++) {
-            number a = x;
-            number b = y;
-            x = a * a - b * b + xc;
-            y = 2.0 * a * b + yc;
-            if (x * x + y * y > 20000000000.0) return i;
+            p = p * p + c;
+            if (p.dist_squared() > 20000000000.0) return i;
         }
         return -1;
     }
