@@ -75,55 +75,43 @@ dest = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
 
 params = np.array([0, 0, 0, ITERATIONS], dtype=np.float32)
 
-while True:
-    target = (0, 0)
-    auto_counter = 0
-    zoom = 1.5
-    X = INIT_POS[0]
-    Y = INIT_POS[1]
-    print('Executing')
-    try:
-        success = True
-        for f in range(FRAMES):
-            print('Generating frame {}/{}'.format(f + 1, FRAMES))
-            zoom /= ZPF
-            params[0] = zoom
-            params[1] = X
-            params[2] = Y
+zoom = 1
+X = INIT_POS[0]
+Y = INIT_POS[1]
+print('Executing')
+try:
+    success = True
+    for f in range(FRAMES):
+        print('Generating frame {}/{}'.format(f + 1, FRAMES))
+        zoom /= ZPF
+        params[0] = zoom
+        params[1] = X
+        params[2] = Y
 
-            mandelbrot(drv.Out(dest), drv.In(params), block=BLOCK, grid=GRID)
+        mandelbrot(drv.Out(dest), drv.In(params), block=BLOCK, grid=GRID)
 
-            if CONTRAST_IMPROVEMENT:
-                dest -= np.amin(dest)
-                dest /= np.amax(dest)
-            
-            if MINIMAL_CONTRAST != 0 and np.amax(dest) - np.amin(dest) < MINIMAL_CONTRAST:
-                print('Contrast condition failed.')
-                success = False
-                break
-
-            if not NO_FRAMES:
-                if INVERT:
-                    dest = 1 - dest
-                result = plt.get_cmap(CM)(dest)
-                result *= 255
-
-                Image.fromarray(result.astype('uint8'), 'RGBA').save('tmp/frame{}.png'.format(f + 1))
-        if success:
+        if CONTRAST_IMPROVEMENT:
+            dest -= np.amin(dest)
+            dest /= np.amax(dest)
+        
+        if MINIMAL_CONTRAST != 0 and np.amax(dest) - np.amin(dest) < MINIMAL_CONTRAST:
+            print('Contrast condition failed.')
+            success = False
             break
-    except KeyboardInterrupt:
-        print('Render interrupted')
-        p = 'tmp/frame{}.png'.format(f + 1)
-        if os.path.exists(p):
-            os.remove(p)
-        break
-    except IndexError:
-        print('Empty sequence.')
-    if REPEAT:
-        print('Repeating.')
-    else:
-        print('Halting.')
-        break
+
+        if not NO_FRAMES:
+            if INVERT:
+                dest = 1 - dest
+            result = plt.get_cmap(CM)(dest)
+            result *= 255
+
+            Image.fromarray(result.astype('uint8'), 'RGBA').save('tmp/frame{}.png'.format(f + 1))
+except KeyboardInterrupt:
+    print('Render interrupted')
+    p = 'tmp/frame{}.png'.format(f + 1)
+    if os.path.exists(p):
+        os.remove(p)
+
 
 
 with open('last.txt', 'w') as file:
