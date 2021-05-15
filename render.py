@@ -32,10 +32,7 @@ parser.add_argument('-i', action='store_true', help='Invert colormap')
 parser.add_argument('-nf', action='store_true', help='Don\'t save frames')
 parser.add_argument('-r', action='store_true', help='Repeat if failed')
 parser.add_argument('-ci', action='store_true', help='Contrast improvement')
-parser.add_argument('-a', action='store_true', help='Automatic positioning')
 parser.add_argument('-lp', action='store_true', help='Go to last position')
-parser.add_argument('-ai', nargs='?', action='store', default=80, type=int, help='Automatic positioning interval')
-parser.add_argument('-ar', nargs='?', action='store', default=0.1, type=float, help='Automatic positioning rate')
 parser.add_argument('-p', nargs='?', action='store', default=4, type=int, help='Precision')
 
 args = parser.parse_args()
@@ -51,9 +48,6 @@ FPS = args.fps
 OUTPUT = args.output
 CM = args.cm
 NO_FRAMES = args.nf
-AUTO = args.a
-AUTO_INTERVAL = args.ai
-AUTO_RATE = args.ar
 LAST_POS = args.lp
 MINIMAL_CONTRAST = args.mc
 REPEAT = args.r
@@ -107,22 +101,6 @@ while True:
                 print('Contrast condition failed.')
                 success = False
                 break
-
-            if AUTO:
-                if auto_counter == 0:
-                    edges = np.where(np.abs(dest - 0.5) < 0.35)
-                    points = list(zip(edges[0], edges[1]))
-                    point = random.choice(points)
-                    x = point[1]
-                    y = point[0]
-                    x = (x / WIDTH - 0.5) * 2 * zoom
-                    y = (y / HEIGHT - 0.5) * 2 * zoom
-                    target = (X + x, Y + y)
-                    auto_counter = AUTO_INTERVAL
-                else:
-                    auto_counter -= 1
-                X = (X * (1 - AUTO_RATE) + target[0] * AUTO_RATE)
-                Y = (Y * (1 - AUTO_RATE) + target[1] * AUTO_RATE)
 
             if not NO_FRAMES:
                 if INVERT:
