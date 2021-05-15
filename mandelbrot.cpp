@@ -31,7 +31,7 @@ extern "C" {
         Complex p(0.0, 0.0);
         for (int i = 0; i < iterations; i++) {
             p = p * p + c;
-            if (p.dist_squared() > 20000000000.0) return i;
+            if (p.dist_squared() > 4.0) return i;
         }
         return -1;
     }
