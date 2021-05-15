@@ -24,13 +24,11 @@ parser.add_argument('-x', nargs='?', action='store', default=0, type=float, help
 parser.add_argument('-y', nargs='?', action='store', default=0, type=float, help='Y offset')
 parser.add_argument('-fps', nargs='?', action='store', default=30, type=int, help='Y offset')
 parser.add_argument('-z', nargs='?', action='store', default=1.02, type=float, help='Zoom speed')
-parser.add_argument('-mc', nargs='?', action='store', default=0, type=float, help='Minimal contrast')
 parser.add_argument('-cm', nargs='?', action='store', default='PuBuGn', type=str, help='Matplotlib colormap')
 parser.add_argument('frames', type=int, help='Number of rendered frames')
 parser.add_argument('output', type=str, help='Output file (mp4)')
 parser.add_argument('-i', action='store_true', help='Invert colormap')
 parser.add_argument('-nf', action='store_true', help='Don\'t save frames')
-parser.add_argument('-r', action='store_true', help='Repeat if failed')
 parser.add_argument('-ci', action='store_true', help='Contrast improvement')
 parser.add_argument('-lp', action='store_true', help='Go to last position')
 parser.add_argument('-p', nargs='?', action='store', default=4, type=int, help='Precision')
@@ -49,8 +47,6 @@ OUTPUT = args.output
 CM = args.cm
 NO_FRAMES = args.nf
 LAST_POS = args.lp
-MINIMAL_CONTRAST = args.mc
-REPEAT = args.r
 CONTRAST_IMPROVEMENT = args.ci
 PRECISION = args.p
 
@@ -75,6 +71,7 @@ dest = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
 
 params = np.array([0, 0, 0, ITERATIONS], dtype=np.float32)
 
+colormap = plt.get_cmap(CM)
 zoom = 1
 X = INIT_POS[0]
 Y = INIT_POS[1]
@@ -94,15 +91,10 @@ try:
             dest -= np.amin(dest)
             dest /= np.amax(dest)
         
-        if MINIMAL_CONTRAST != 0 and np.amax(dest) - np.amin(dest) < MINIMAL_CONTRAST:
-            print('Contrast condition failed.')
-            success = False
-            break
-
         if not NO_FRAMES:
             if INVERT:
                 dest = 1 - dest
-            result = plt.get_cmap(CM)(dest)
+            result = colormap(dest)
             result *= 255
 
             Image.fromarray(result.astype('uint8'), 'RGBA').save('tmp/frame{}.png'.format(f + 1))
