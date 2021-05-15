@@ -15,10 +15,8 @@ def read(path):
         return f.read()
 
 parser = argparse.ArgumentParser(description='Mandelbrot Set zoom animation generator.')
-parser.add_argument('-bw', nargs='?', action='store', default=32, type=int, help='Block width')
-parser.add_argument('-bh', nargs='?', action='store', default=32, type=int, help='Block height')
-parser.add_argument('-gw', nargs='?', action='store', default=48, type=int, help='Grid width')
-parser.add_argument('-gh', nargs='?', action='store', default=48, type=int, help='Grid height')
+parser.add_argument('-bs', nargs='?', action='store', default=32, type=int, help='Block size')
+parser.add_argument('-gs', nargs='?', action='store', default=48, type=int, help='Grid size')
 parser.add_argument('-l', nargs='?', action='store', default=500, type=int, help='Iterations limit')
 parser.add_argument('-x', nargs='?', action='store', default=0, type=float, help='X offset')
 parser.add_argument('-y', nargs='?', action='store', default=0, type=float, help='Y offset')
@@ -36,8 +34,8 @@ parser.add_argument('-p', nargs='?', action='store', default=4, type=int, help='
 args = parser.parse_args()
 
 INVERT = args.i
-BLOCK = (args.bw, args.bh, 1)
-GRID = (args.gw, args.gh)
+BLOCK = (args.bs, args.bs, 1)
+GRID = (args.gs, args.gs)
 FRAMES = args.frames
 ZPF = args.z
 INIT_POS = (args.x, args.y)
@@ -72,7 +70,7 @@ dest = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
 params = np.array([0, 0, 0, ITERATIONS], dtype=np.float32)
 
 colormap = plt.get_cmap(CM)
-zoom = 1
+zoom = 2
 X = INIT_POS[0]
 Y = INIT_POS[1]
 print('Executing')
